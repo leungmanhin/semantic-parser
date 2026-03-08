@@ -1,4 +1,5 @@
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 from checker_functions import *
 from chaining import chaining
@@ -108,7 +109,23 @@ def format_check_correct(llm_outputs, chat_history, output_format, max_back_fort
 
 
 # mode = "parsing" | "querying"
-def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10):
+def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1):
+    if runs > 1:
+        with ThreadPoolExecutor(max_workers=runs) as executor:
+            futures = [
+                executor.submit(nl2pln, sentence, context=context, mode=mode, max_back_forth=max_back_forth)
+                for _ in range(runs)
+            ]
+            results = [f.result() for f in futures]
+        all_type_defs = [r[0] for r in results]
+        all_stmts = [r[1] for r in results]
+        all_queries = [r[2] for r in results]
+        all_extra_exprs = [r[3] for r in results]
+        all_sent_links = [r[4] for r in results]
+        bridging_rules = generate_bridging_rules(all_stmts)
+        all_extra_exprs += bridging_rules
+        return (all_type_defs, all_stmts, all_queries, all_extra_exprs, all_sent_links)
+
     system_prompt = nl2pln_querying_system_prompt if mode == "querying" else nl2pln_parsing_system_prompt
     output_format = PLNQueryExprs if mode == "querying" else PLNExprs
 
@@ -124,11 +141,10 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10):
     llm_outputs = to_openrouter(create_nl2pln_parsing_prompt(sentence, context), output_format=output_format, history=chat_history)
 
     if mode == "querying":
-        while (len(chat_history)-1)/2 > max_back_forth:
-            if (not llm_outputs["queries"]):
-                llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"Make sure you structure one or more queries from the `input_question` and return it in the 'queries' output field. Please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
-                continue
-            break
+        while not llm_outputs["queries"]:
+            if (len(chat_history)-1)/2 >= max_back_forth:
+                break
+            llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"Make sure you structure one or more queries from the `input_question` and return it in the 'queries' output field. Please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
 
     type_defs, stmts, queries = format_check_correct(llm_outputs, chat_history, output_format, max_back_forth=max_back_forth)
 
@@ -156,27 +172,6 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10):
 
     return (type_defs, stmts, queries, extra_exprs, sent_links)
 
-def nl2pln_multi_runs(sentence, context=[], mode="parsing", max_back_forth=10, runs=3):
-    all_type_defs = []
-    all_stmts = []
-    all_queries = []
-    all_extra_exprs = []
-    all_sent_links = []
-
-    # TODO: parallelize
-    for idx in range(0, runs):
-        print(f"... nl2pln runs {idx+1} of {runs}")
-        outputs = nl2pln(sentence, context=context, mode=mode, max_back_forth=max_back_forth)
-        all_type_defs.append(outputs[0])
-        all_stmts.append(outputs[1])
-        all_queries.append(outputs[2])
-        all_extra_exprs.append(outputs[3])
-        all_sent_links.append(outputs[4])
-
-    bridging_rules = generate_bridging_rules(all_stmts)
-    all_extra_exprs += bridging_rules
-
-    return (all_type_defs, all_stmts, all_queries, all_extra_exprs, all_sent_links)
 
 def assisted_qa(all_type_defs, all_stmts, query, kb_nl="", query_nl="", max_back_forth=10, sibling_queries=[]):
     chat_history = [{
