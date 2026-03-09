@@ -10,6 +10,7 @@ from prompts import *
 from utils import *
 from vector_index import *
 
+
 def format_check_correct(llm_outputs, chat_history, output_format, max_back_forth=10, related_exprs={}):
     while True:
         attempts = int((len(chat_history)-1)/2)
@@ -163,12 +164,6 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1):
             eq_expr = generate_equivalence_expr(pred, s_pred[0], arity, s_pred[1])
             extra_exprs.append(eq_expr)
             print(f'... generated: "{eq_expr}"')
-            # # XXX TODO: just a quick hack for testing since Equivalence doesn't work in chaining
-            # eq_expr1 = generate_equivalence_expr(pred, s_pred[0], arity, s_pred[1]).replace("Equivalence", "Implication")
-            # eq_expr2 = generate_equivalence_expr(s_pred[0], pred, arity, s_pred[1]).replace("Equivalence", "Implication")
-            # extra_exprs.append(eq_expr1)
-            # extra_exprs.append(eq_expr2)
-            # print(f'... generated: "{eq_expr1} {eq_expr2}"')
 
     return (type_defs, stmts, queries, extra_exprs, sent_links)
 
@@ -212,6 +207,7 @@ def assisted_qa(all_type_defs, all_stmts, query, kb_nl="", query_nl="", max_back
             print(f"Newly proposed:\n```\na_type_defs = {a_type_defs}\na_rules = {a_rules}\na_rules_nl = {a_rules_nl}\n```\n")
 
     return ([], a_type_defs, a_rules, a_rules_nl)
+
 
 def pln2nl(chaining_results):
     def extract_grounded_expr(text: str) -> str | None:

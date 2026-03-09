@@ -5,18 +5,26 @@ import time
 import queue
 from pettachainer.pettachainer import PeTTaChainer
 
-def flatten_connectives(expr: str) -> str:
-    def parse(tokens):
-        token = tokens.pop(0)
-        if token == '(':
-            lst = []
-            while tokens[0] != ')':
-                lst.append(parse(tokens))
-            tokens.pop(0)
-            return lst
-        else:
-            return token
 
+def _parse_sexp(tokens):
+    token = tokens.pop(0)
+    if token == '(':
+        lst = []
+        while tokens[0] != ')':
+            lst.append(_parse_sexp(tokens))
+        tokens.pop(0)
+        return lst
+    else:
+        return token
+
+
+def _sexp_to_string(node):
+    if isinstance(node, list):
+        return f"({' '.join(_sexp_to_string(n) for n in node)})"
+    return node
+
+
+def flatten_connectives(expr: str) -> str:
     def flatten(node):
         if not isinstance(node, list) or not node:
             return node
@@ -32,15 +40,24 @@ def flatten_connectives(expr: str) -> str:
                 merged_children.append(child)
         return [head] + merged_children
 
-    def to_string(node):
-        if isinstance(node, list):
-            return f"({' '.join(to_string(n) for n in node)})"
-        return node
-
     tokens = re.findall(r'\(|\)|[^\s()]+', expr)
-    tree = parse(tokens)
+    tree = _parse_sexp(tokens)
     flat_tree = flatten(tree)
-    return to_string(flat_tree)
+    return _sexp_to_string(flat_tree)
+
+
+def equivalence_to_implications(expr: str) -> tuple[str, str]:
+    tokens = re.findall(r'\(|\)|[^\s()]+', expr)
+    tree = _parse_sexp(tokens)
+    # Expected: [':', prf_name, ['Equivalence', expr1, expr2], stv]
+    prf_name = tree[1]
+    expr1 = tree[2][1]
+    expr2 = tree[2][2]
+    stv = tree[3]
+    fwd = _sexp_to_string([':', f'{prf_name}_fwd', ['Implication', expr1, expr2], stv])
+    bwd = _sexp_to_string([':', f'{prf_name}_bwd', ['Implication', expr2, expr1], stv])
+    return fwd, bwd
+
 
 def _main_chaining(kb, query, result_queue, handler, max_depth):
     # print(f"Chaining (handler = {handler}):\n```\nkb = {kb}\nquery = {query}\n```")
@@ -79,7 +96,6 @@ def _main_chaining(kb, query, result_queue, handler, max_depth):
     print(f"Chaining result: {result}\n(Time used: {end_time - start_time} seconds)\n")
     result_queue.put(result)
 
-    # os.chdir(curdir)
 
 def chaining(kb, query, handler=None, timeout=30, max_depth=10):
     result = None

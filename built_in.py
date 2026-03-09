@@ -41,4 +41,5 @@ additional_rules = [
     "(: similarity_1 (Implication (And ($pred $x) (Similarity $x $y)) ($pred $y)) (STV 0.9 0.9))",
     "(: similarity_2l (Implication (And ($pred $x $y) (Similarity $x $z)) ($pred $z $y)) (STV 0.9 0.9))",
     "(: similarity_2r (Implication (And ($pred $x $y) (Similarity $y $z)) ($pred $x $z)) (STV 0.9 0.9))",
+    # "(: equivalence_to_implication (Implication (Equivalence $x $y) (And (Implication $x $y) (Implication $y $x))) (STV 0.9 0.9))",
 ]
