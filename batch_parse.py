@@ -1,8 +1,11 @@
 import json
+import os
 from datetime import datetime, timezone, timedelta
 
 from pipelines import *
 from vector_index import *
+
+FAISS_DIR = "data/faiss"
 
 current_time = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d-%H-%M-%S")
 sp_out_file = f"data/parsed/semantic_parsing_{current_time}.json"
@@ -10,6 +13,10 @@ sp_out_file = f"data/parsed/semantic_parsing_{current_time}.json"
 previous_parses = []
 all_outputs = []
 failed_cases = []
+
+if os.path.exists(os.path.join(FAISS_DIR, "config.json")):
+    if input(f"Existing FAISS store found in '{FAISS_DIR}', load it? (Y/N): ").lower() == "y":
+        faiss_store = SemanticArityIndex.load(FAISS_DIR)
 
 filename = input("Enter the full name of the JSON file to be parsed: ")
 
@@ -39,10 +46,6 @@ except Exception:
 
 enable_context = True if input("Enable coreference resolution across sentences (Y/N): ").lower() == "y" else False
 
-faiss_size = sum([index.ntotal for index in faiss_store.indices.values()])
-if faiss_size and input(f"FAISS has {faiss_size} vectors, remove them (Y/N): ").lower() == "y":
-    faiss_store.clear()
-
 print(f"... going to parse sentences from idx {start_idx} to {end_idx}")
 for i in range(start_idx, end_idx + 1):
     sentence = sentences[i]
@@ -63,6 +66,7 @@ for i in range(start_idx, end_idx + 1):
             "extra_exprs": extra_exprs,
         })
         output_to_json_file(all_outputs, sp_out_file)
+        faiss_store.save(FAISS_DIR)
         if enable_context:
             previous_parses.append({
                 "sentence": sentence,

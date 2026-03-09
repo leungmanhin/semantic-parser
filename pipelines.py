@@ -165,7 +165,7 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1):
 
     print(f"### {sentence} ###\n```", *(type_defs + stmts + queries), "```\n", sep="\n")
 
-    print(f"... creating Equivalence with existing predicates")
+    print(f"... creating Equivalence with existing predicates (FAISS current size: {sum([index.ntotal for index in faiss_store.indices.values()])})")
     extra_exprs = []
     pred_arity_list = extract_predicates_with_arity(stmts + queries)
     for pa in pred_arity_list:
@@ -213,7 +213,7 @@ def assisted_qa(all_type_defs, all_stmts, query, kb_nl="", query_nl="", max_back
             print(f"... trying to fill in missing pieces before retrying for '{query}'")
             llm_outputs = to_openrouter(create_missing_exprs_prompt(all_stmts, query), history=chat_history, output_format=AddPLNExprs)
 
-            # # TODO: re-enable this to be more strict
+            # TODO: re-enable this to be more strict
             # format_check_result = format_check_correct(llm_outputs, chat_history, AddPLNExprs, max_back_forth=max_back_forth, related_exprs={"type_defs": all_type_defs, "stmts": all_stmts, "queries": sibling_queries})
             # if format_check_result:
             #     a_type_defs, a_rules, _ = format_check_result

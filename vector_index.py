@@ -88,7 +88,7 @@ class SemanticArityIndex:
     # Persistence: SAVE / LOAD
     # =========================
 
-    def save(self, folder_path: str = "faiss/"):
+    def save(self, folder_path: str = "data/faiss/"):
         os.makedirs(folder_path, exist_ok=True)
 
         config = {
@@ -111,8 +111,6 @@ class SemanticArityIndex:
             with open(meta_path, "wb") as f:
                 pickle.dump(meta, f)
 
-        print(f"Saved SemanticArityIndex to {folder_path}")
-
     @classmethod
     def load(cls, folder_path: str):
         config_path = os.path.join(folder_path, "config.json")
@@ -133,7 +131,6 @@ class SemanticArityIndex:
             instance.id_to_word[arity] = meta["id_to_word"]
             instance.word_to_id[arity] = meta["word_to_id"]
 
-        print(f"Loaded SemanticArityIndex from {folder_path}")
         return instance
 
 faiss_store = SemanticArityIndex()
