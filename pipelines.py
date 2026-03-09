@@ -207,7 +207,7 @@ def assisted_qa(all_type_defs, all_stmts, query, kb_nl="", query_nl="", max_back
         elif attempts >= 1:
             print(f"Failed to answer '{query}', skipping for now...")
             # for later debugging
-            print_test_case(all_type_defs + all_stmts, query, kb_nl=kb_nl, query_nl=query_nl)
+            # print_test_case(all_type_defs + all_stmts, query, kb_nl=kb_nl, query_nl=query_nl)
             break
         else:
             print(f"... trying to fill in missing pieces before retrying for '{query}'")

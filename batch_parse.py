@@ -23,7 +23,9 @@ filename = input("Enter the full name of the JSON file to be parsed: ")
 with open(f"{filename}", "r") as fp:
     data = json.load(fp)
 
-    if isinstance(data, list):
+    if isinstance(data, list) and data and "sentences" in data[0]:
+        sentences = [s for entry in data for s in entry["sentences"]]
+    elif isinstance(data, list):
         sentences = [d["sentence"] for d in data]
     elif isinstance(data, dict):
         sentences = [data["sentence"]]
