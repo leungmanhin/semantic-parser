@@ -3,7 +3,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from checker_functions import *
 from chaining import chaining
-from extra_exprs import *
 from graphs import *
 from llm import *
 from prompts import *
@@ -123,8 +122,21 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1):
         all_queries = [r[2] for r in results]
         all_extra_exprs = [r[3] for r in results]
         all_sent_links = [r[4] for r in results]
-        bridging_rules = generate_bridging_rules(all_stmts)
-        all_extra_exprs += bridging_rules
+        bridging_rules = []
+        for pair in get_pairwise_variations(all_stmts):
+            print(f"\nPair: Graph {pair['graph_x_idx']} vs Graph {pair['graph_y_idx']}")
+            print(f"  Pairwise MCS Size: {len(pair['pairwise_mcs'])} relations")
+            print(f"  Pairwise MCS: {pair['pairwise_mcs']}")
+            print(f"  Variation X (rel. to Pairwise): {pair['variation_x']}")
+            print(f"  Variation Y (rel. to Pairwise): {pair['variation_y']}")
+            if not (pair['variation_x'] or pair['variation_y']):
+                continue
+            chat_history = [{"role": "system", "content": add_bridging_rules_system_prompt}]
+            llm_outputs = to_openrouter(create_bridging_rules_prompt(pair["pairwise_mcs"], pair["variation_x"], pair["variation_y"]), history=chat_history, output_format=BridgingRules)
+            print(f"Bridging rules generated: {llm_outputs['bridging_rules']}")
+            bridging_rules += llm_outputs['bridging_rules']
+        # TODO: filter out duplicates and useless expressions (e.g. type defs) more robustly
+        all_extra_exprs += list(set(bridging_rules))
         return (all_type_defs, all_stmts, all_queries, all_extra_exprs, all_sent_links)
 
     system_prompt = nl2pln_querying_system_prompt if mode == "querying" else nl2pln_parsing_system_prompt
@@ -160,8 +172,12 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1):
         pred = pa[0]
         arity = pa[1]
         similar_preds = faiss_store.search_and_store(pred, arity)["matches"]
+        # generate a Equivalence for each pair of similar predicates
         for s_pred in similar_preds:
-            eq_expr = generate_equivalence_expr(pred, s_pred[0], arity, s_pred[1])
+            s_pred_name, stv_strength = s_pred[0], s_pred[1]
+            variables = [f"$var_{i}" for i in range(arity)]
+            vars_str = " ".join(variables)
+            eq_expr = f"(: {pred.lower()}_{s_pred_name.lower()}_eq (Equivalence ({pred} {vars_str}) ({s_pred_name} {vars_str})) (STV {stv_strength:.3f} 0.9))"
             extra_exprs.append(eq_expr)
             print(f'... generated: "{eq_expr}"')
 
