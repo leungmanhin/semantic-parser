@@ -12,6 +12,7 @@ def to_openrouter(prompt, model="gpt-5.4", effort="none", history=None, tools=[{
         "model": model,
         "messages": history,
         "tools": tools,
+        "max_tokens": 128000,
         "reasoning": {"effort": effort},
         "response_format": {
             "type": "json_schema",
