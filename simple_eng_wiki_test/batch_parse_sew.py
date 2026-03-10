@@ -38,39 +38,39 @@ base_name = os.path.basename(filename).replace("_sentences.json", "")
 with open(filename, "r") as fp:
     data = json.load(fp)
 
-abstracts = data
-num_abstracts = len(abstracts)
-max_ab_idx = num_abstracts - 1
-print(f"Successfully loaded {num_abstracts} abstracts.\n")
+articles = data
+num_articles = len(articles)
+max_art_idx = num_articles - 1
+print(f"Successfully loaded {num_articles} articles.\n")
 
-start_ab = input("Start parsing from abstract index (default is 0): ")
+start_art = input("Start parsing from article index (default is 0): ")
 try:
-    start_ab = min(int(start_ab), max_ab_idx)
+    start_art = min(int(start_art), max_art_idx)
 except Exception:
-    start_ab = 0
+    start_art = 0
 
-end_ab = input(f"End parsing at abstract index (default is {max_ab_idx}): ")
+end_art = input(f"End parsing at article index (default is {max_art_idx}): ")
 try:
-    end_ab = min(int(end_ab), max_ab_idx)
+    end_art = min(int(end_art), max_art_idx)
 except Exception:
-    end_ab = max_ab_idx
+    end_art = max_art_idx
 
-sp_out_file = os.path.join(script_dir, f"{base_name}_parses_abst{start_ab}-{end_ab}.json")
+sp_out_file = os.path.join(script_dir, f"{base_name}_parses_art{start_art}-{end_art}.json")
 
-total_sentences = sum(len(abstracts[i]["sentences"]) for i in range(start_ab, end_ab + 1))
-confirm = input(f"About to parse {end_ab - start_ab + 1} abstracts ({total_sentences} sentences total). Confirm? (Y/N): ")
+total_sentences = sum(len(articles[i]["sentences"]) for i in range(start_art, end_art + 1))
+confirm = input(f"About to parse {end_art - start_art + 1} articles ({total_sentences} sentences total). Confirm? (Y/N): ")
 if confirm.lower() != "y":
     print("Aborted.")
     exit(0)
 
-print(f"... going to parse abstracts from index {start_ab} to {end_ab}\n")
+print(f"... going to parse articles from index {start_art} to {end_art}\n")
 
-for ab_i in range(start_ab, end_ab + 1):
-    entry = abstracts[ab_i]
-    abstract_id = entry.get("pmid", entry.get("idx", ab_i))
+for art_i in range(start_art, end_art + 1):
+    entry = articles[art_i]
+    title = entry.get("title", entry.get("idx", art_i))
     sentences = entry["sentences"]
 
-    print(f"=== Abstract {ab_i} (pmid={abstract_id}, {len(sentences)} sentences) ===")
+    print(f"=== Article {art_i} (title={title}, {len(sentences)} sentences) ===")
 
     previous_parses = []
 
@@ -83,8 +83,8 @@ for ab_i in range(start_ab, end_ab + 1):
 
             print(f"---\n\nSentence:\n{sentence}\n\ntype_defs:\n{type_defs}\n\nstmts:\n{stmts}\n\nextra_exprs:\n{extra_exprs}\n\n---\n")
             all_outputs.append({
-                "abstract_idx": ab_i,
-                "abstract_id": abstract_id,
+                "article_idx": art_i,
+                "title": title,
                 "sentence_idx": sent_i,
                 "sentence": sentence,
                 "type_defs": type_defs,
@@ -95,12 +95,12 @@ for ab_i in range(start_ab, end_ab + 1):
             faiss_store.save(FAISS_DIR)
             previous_parses = (previous_parses + [{"sentence": sentence, "stmts": stmts}])[-5:]
         else:
-            failed_cases.append((ab_i, sentence))
+            failed_cases.append((art_i, sentence))
 
 if failed_cases:
     print(f"Failed to parse {len(failed_cases)} sentence(s):")
-    for ab_i, sent in failed_cases:
-        print(f"  abstract {ab_i}: {sent}")
+    for art_i, sent in failed_cases:
+        print(f"  article {art_i}: {sent}")
 
 finish_time = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
 print(f"FINISHED PARSING at {finish_time}")
