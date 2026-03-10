@@ -165,21 +165,22 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1):
 
     print(f"### {sentence} ###\n```", *(type_defs + stmts + queries), "```\n", sep="\n")
 
-    print(f"... creating Equivalence with existing predicates (FAISS current size: {sum([index.ntotal for index in faiss_store.indices.values()])})")
+    # TODO: re-enable it if needed
+    # print(f"... creating Equivalence with existing predicates (FAISS current size: {sum([index.ntotal for index in faiss_store.indices.values()])})")
     extra_exprs = []
-    pred_arity_list = extract_predicates_with_arity(stmts + queries)
-    for pa in pred_arity_list:
-        pred = pa[0]
-        arity = pa[1]
-        similar_preds = faiss_store.search_and_store(pred, arity)["matches"]
-        # generate a Equivalence for each pair of similar predicates
-        for s_pred in similar_preds:
-            s_pred_name, stv_strength = s_pred[0], s_pred[1]
-            variables = [f"$var_{i}" for i in range(arity)]
-            vars_str = " ".join(variables)
-            eq_expr = f"(: {pred.lower()}_{s_pred_name.lower()}_eq (Equivalence ({pred} {vars_str}) ({s_pred_name} {vars_str})) (STV {stv_strength:.3f} 0.9))"
-            extra_exprs.append(eq_expr)
-            print(f'... generated: "{eq_expr}"')
+    # pred_arity_list = extract_predicates_with_arity(stmts + queries)
+    # for pa in pred_arity_list:
+    #     pred = pa[0]
+    #     arity = pa[1]
+    #     similar_preds = faiss_store.search_and_store(pred, arity)["matches"]
+    #     # generate a Equivalence for each pair of similar predicates
+    #     for s_pred in similar_preds:
+    #         s_pred_name, stv_strength = s_pred[0], s_pred[1]
+    #         variables = [f"$var_{i}" for i in range(arity)]
+    #         vars_str = " ".join(variables)
+    #         eq_expr = f"(: {pred.lower()}_{s_pred_name.lower()}_eq (Equivalence ({pred} {vars_str}) ({s_pred_name} {vars_str})) (STV {stv_strength:.3f} 0.9))"
+    #         extra_exprs.append(eq_expr)
+    #         print(f'... generated: "{eq_expr}"')
 
     return (type_defs, stmts, queries, extra_exprs, sent_links)
 
