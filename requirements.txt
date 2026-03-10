@@ -1,0 +1,11 @@
+datasets==4.6.1
+faiss-cpu==1.13.2
+hyperon==0.2.10
+networkx==3.6.1
+numpy==2.4.2
+PeTTaChainer @ git+https://github.com/rTreutlein/PeTTaChainer.git
+pubmed-parser==0.5.1
+pydantic==2.12.5
+sexpdata==1.0.2
+spacy==3.8.11
+# After installing, also run: python -m spacy download en_core_web_sm
