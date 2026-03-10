@@ -6,6 +6,9 @@ from datetime import datetime, timezone, timedelta
 from pipelines import *
 from vector_index import *
 
+model = "gpt-5.4"
+effort = "none"
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 FAISS_DIR = "data/faiss"
 
@@ -55,8 +58,6 @@ try:
 except Exception:
     end_ab = max_ab_idx
 
-sp_out_file = os.path.join(script_dir, f"{base_name}_parses_abst{start_ab}-{end_ab}.json")
-
 total_sentences = sum(len(abstracts[i]["sentences"]) for i in range(start_ab, end_ab + 1))
 confirm = input(f"About to parse {end_ab - start_ab + 1} abstracts ({total_sentences} sentences total). Confirm? (Y/N): ")
 if confirm.lower() != "y":
@@ -69,20 +70,22 @@ for ab_i in range(start_ab, end_ab + 1):
     entry = abstracts[ab_i]
     abstract_id = entry.get("pmid", entry.get("idx", ab_i))
     sentences = entry["sentences"]
+    sp_out_file = os.path.join(script_dir, f"{base_name}_parses_{model}_{effort}_{abstract_id}.json")
 
     print(f"=== Abstract {ab_i} (pmid={abstract_id}, {len(sentences)} sentences) ===")
 
+    abstract_outputs = []
     previous_parses = []
 
     for sent_i, sentence in enumerate(sentences):
         print(f"... looking at sentence: {sentence}")
 
-        sent_result = nl2pln(sentence, mode="parsing", context=previous_parses)
+        sent_result = nl2pln(sentence, mode="parsing", context=previous_parses, model=model, effort=effort)
         if sent_result is not None:
             type_defs, stmts, _, extra_exprs, sent_links = sent_result
 
             print(f"---\n\nSentence:\n{sentence}\n\ntype_defs:\n{type_defs}\n\nstmts:\n{stmts}\n\nextra_exprs:\n{extra_exprs}\n\n---\n")
-            all_outputs.append({
+            abstract_outputs.append({
                 "abstract_idx": ab_i,
                 "abstract_id": abstract_id,
                 "sentence_idx": sent_i,
@@ -91,7 +94,7 @@ for ab_i in range(start_ab, end_ab + 1):
                 "stmts": stmts,
                 "extra_exprs": extra_exprs,
             })
-            output_to_json_file(all_outputs, sp_out_file)
+            output_to_json_file(abstract_outputs, sp_out_file)
             faiss_store.save(FAISS_DIR)
             previous_parses = (previous_parses + [{"sentence": sentence, "stmts": stmts}])[-5:]
         else:
