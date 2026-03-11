@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from pipelines import *
 
 while True:
-    mode = input("Enter either:\n- '1' to parse a sentence as the KB\n- '2' to read a KB from a file\n>> ")
+    mode = input("Enter either:\n- '1' to parse a sentence as the KB\n- '2' to read a KB from files\n>> ")
     if mode == "1":
         sentence = input("Enter a sentence: ")
         sent_result = nl2pln(sentence, mode="parsing")
@@ -15,25 +15,30 @@ while True:
             type_defs, stmts, _, extra_exprs, _ = sent_result
             break
     elif mode == "2":
-        kb_filename = input("Enter the file name in path: ")
-
-    if mode == "2":
-        with open(f"{kb_filename}", "r") as fp:
-            data = json.load(fp)
-            if isinstance(data, list):
-                while True:
-                    max_idx = len(data) - 1
-                    sentence_idx = int(input(f"Enter a sentence index (0-{max_idx}): "))
-                    if sentence_idx < 0 or sentence_idx > max_idx:
-                        print("Invalid sentence index!")
-                        continue
-                    else:
-                        break
-                sentence, type_defs, stmts, extra_exprs = [(s["sentence"], s["type_defs"], s["stmts"], s["extra_exprs"]) for s in data if s["sentence_idx"] == sentence_idx][0]
-            elif isinstance(data, dict):
-                sentence, type_defs, stmts, extra_exprs = data["sentence"], data["type_defs"], data["stmts"], data["extra_exprs"]
-            print(f"Successfully loaded!\n```\nsentence = \"{sentence}\"\ntype_defs = {type_defs}\nstmts = {stmts}\nextra_exprs = {extra_exprs}\n```\n")
-            break
+        all_sentences = []
+        type_defs, stmts, extra_exprs = [], [], []
+        while True:
+            kb_filename = input("Enter a KB file path (leave blank to finish): ").strip()
+            if not kb_filename:
+                if not all_sentences:
+                    print("No KB files loaded, please enter at least one file.")
+                    continue
+                break
+            with open(kb_filename, "r") as fp:
+                data = json.load(fp)
+            entries = data if isinstance(data, list) else [data]
+            for entry in entries:
+                all_sentences.append(entry["sentence"])
+                type_defs += entry["type_defs"]
+                stmts += entry["stmts"]
+                extra_exprs += entry["extra_exprs"]
+            print(f"Loaded {len(entries)} sentence(s) from '{kb_filename}'. Total so far: {len(all_sentences)}.")
+        type_defs = list(set(type_defs))
+        stmts = list(set(stmts))
+        extra_exprs = list(set(extra_exprs))
+        sentence = " | ".join(all_sentences)
+        print(f"\nKB ready: {len(all_sentences)} sentence(s), {len(type_defs)} type_def(s), {len(stmts)} stmt(s), {len(extra_exprs)} extra_expr(s).\n")
+        break
 
 while True:
     qcmd = input("\n====== ['/exit' to exit | '/save' to save] ======\n\nEnter a question: ")
