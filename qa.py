@@ -74,6 +74,7 @@ while True:
         continue
     else:
         q_type_defs, q_stmts, q_queries, q_extra_exprs, _ = ques_result
+        answers = []
 
         for q_idx, query in enumerate(q_queries):
             print(f"... handling query ({q_idx+1} of {len(q_queries)})")
@@ -86,6 +87,8 @@ while True:
                 # TODO: maybe gather the incoming set of the instances involved as well
                 print(f"... constructing the answer")
                 answer = pln2nl(chaining_result)
-                print(f"Answer: {answer}\n")
+                print(f"... constructed answer: {answer}\n")
+                answers.append(answer)
             else:
                 print(f"ANSWER NOT FOUND!!")
+        print(f"Answers: {answers}")
