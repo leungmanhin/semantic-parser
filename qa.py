@@ -77,14 +77,15 @@ while True:
 
         for q_idx, query in enumerate(q_queries):
             print(f"... handling query ({q_idx+1} of {len(q_queries)})")
-            qa_result = assisted_qa(type_defs + q_type_defs, stmts + q_stmts + q_extra_exprs, query, kb_nl=sentence, query_nl=question)
-            chaining_result, a_type_defs, a_rules, a_rules_nl = qa_result
+            chaining_result = chaining(type_defs + q_type_defs + stmts + q_stmts + q_extra_exprs, query)
+
+            # TODO: check if the chaining result is what we want
 
             if chaining_result:
-                print(f"ANSWER FOUND!!\n\n... needed to add:\na_type_defs = {a_type_defs}\na_rules = {a_rules}\na_rules_nl = {a_rules_nl}\n")
+                print(f"ANSWER FOUND!!")
                 # TODO: maybe gather the incoming set of the instances involved as well
                 print(f"... constructing the answer")
                 answer = pln2nl(chaining_result)
                 print(f"Answer: {answer}\n")
             else:
-                print(f"ANSWER NOT FOUND!!\n\n... tried adding:\na_type_defs = {a_type_defs}\na_rules = {a_rules}\na_rules_nl = {a_rules_nl}\n")
+                print(f"ANSWER NOT FOUND!!")
