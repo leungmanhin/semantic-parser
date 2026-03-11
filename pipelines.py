@@ -144,6 +144,13 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1, mode
 
     print(f'\n... parsing "{sentence}" | context: {context}')
 
+    # RAG: retrieve previously parsed sentences similar to this one and prepend to context
+    if mode == "parsing":
+        rag_context = sentence_parses_store.search(sentence)
+        if rag_context:
+            print(f"... RAG: found {len(rag_context)} similar previously-parsed sentence(s)")
+        context = rag_context + context
+
     # reset chat_history for each input sentence
     chat_history = [{
         "role": "system",
@@ -171,6 +178,10 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1, mode
     pred_arity_list = extract_predicates_with_arity(stmts + queries)
     for pred, arity in pred_arity_list:
         faiss_store.store(pred, arity)
+
+    # store sentence + stmts for RAG retrieval in future calls
+    if mode == "parsing":
+        sentence_parses_store.store(sentence, stmts)
 
     return (type_defs, stmts, queries, extra_exprs, sent_links)
 

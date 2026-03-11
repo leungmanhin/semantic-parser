@@ -124,3 +124,79 @@ class SemanticArityIndex:
         return instance
 
 faiss_store = SemanticArityIndex()
+
+
+class SentenceParsesIndex:
+    def __init__(self):
+        self.index = None
+        self.id_to_parse = {}   # { faiss_id: {"sentence": str, "stmts": list[str]} }
+
+    def _get_or_create_index(self):
+        if self.index is None:
+            self.index = faiss.IndexFlatIP(EMBEDDING_DIM)
+        return self.index
+
+    def store(self, sentence: str, stmts: list[str]):
+        """
+        Generates embedding for 'sentence' and stores it with its parsed stmts.
+        Skips storing if the sentence is already present (exact match).
+        """
+        for parse in self.id_to_parse.values():
+            if parse["sentence"] == sentence:
+                return
+        index = self._get_or_create_index()
+        embedding = get_embedding(sentence).reshape(1, -1)
+        new_id = index.ntotal
+        index.add(embedding)
+        self.id_to_parse[new_id] = {"sentence": sentence, "stmts": stmts}
+
+    def search(self, sentence: str, n_closest: int = 3, threshold: float = 0.85) -> list[dict]:
+        """
+        Returns up to n_closest stored parses whose cosine similarity to 'sentence'
+        meets the threshold. Returns list of {"sentence": ..., "stmts": ...} dicts.
+        """
+        if self.index is None or self.index.ntotal == 0:
+            return []
+        embedding = get_embedding(sentence).reshape(1, -1)
+        k = min(n_closest + 1, self.index.ntotal)
+        distances, indices = self.index.search(embedding, k)
+        results = []
+        for score, idx in zip(distances[0], indices[0]):
+            if idx == -1:
+                continue
+            parse = self.id_to_parse[idx]
+            if parse["sentence"] == sentence:
+                continue
+            if score < threshold:
+                break
+            results.append(parse)
+            if len(results) >= n_closest:
+                break
+        return results
+
+    def clear(self):
+        self.index = None
+        self.id_to_parse = {}
+        print("Sentence parses index has been cleared.")
+
+    def save(self, folder_path: str = "data/faiss/"):
+        os.makedirs(folder_path, exist_ok=True)
+        if self.index is not None:
+            faiss.write_index(self.index, os.path.join(folder_path, "sentences.index"))
+        with open(os.path.join(folder_path, "sentences_meta.pkl"), "wb") as f:
+            pickle.dump(self.id_to_parse, f)
+
+    @classmethod
+    def load(cls, folder_path: str):
+        instance = cls()
+        index_path = os.path.join(folder_path, "sentences.index")
+        meta_path = os.path.join(folder_path, "sentences_meta.pkl")
+        if os.path.exists(index_path):
+            instance.index = faiss.read_index(index_path)
+        if os.path.exists(meta_path):
+            with open(meta_path, "rb") as f:
+                instance.id_to_parse = pickle.load(f)
+        return instance
+
+
+sentence_parses_store = SentenceParsesIndex()
