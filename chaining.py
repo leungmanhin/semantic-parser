@@ -59,6 +59,15 @@ def equivalence_to_implications(expr: str) -> tuple[str, str]:
     return fwd, bwd
 
 
+def build_kb_handler(kb):
+    handler = PeTTaChainer()
+    kb = [flatten_connectives(x) for x in kb]
+    for x in kb:
+        print(f"... adding to space: {x}")
+        handler.add_atom(x)
+    return handler
+
+
 def _main_chaining(kb, query, result_queue, handler, max_depth):
     # print(f"Chaining (handler = {handler}):\n```\nkb = {kb}\nquery = {query}\n```")
 
@@ -70,15 +79,15 @@ def _main_chaining(kb, query, result_queue, handler, max_depth):
     # may impact efficiency significantly
     # kb += additional_rules
 
-    start_with_empty_handler = True if handler == None else False
-    if start_with_empty_handler:
+    if handler is None:
         handler = PeTTaChainer()
-        try:
-            for x in kb:
-                print(f"... adding to space: {x}")
-                handler.add_atom(x)
-        except Exception as e:
-            print(f"\n!!! EXCEPTION: {e}\n")
+
+    try:
+        for x in kb:
+            print(f"... adding to space: {x}")
+            handler.add_atom(x)
+    except Exception as e:
+        print(f"\n!!! EXCEPTION: {e}\n")
 
     depth = 0
     result = []

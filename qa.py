@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timezone, timedelta
 
 from pipelines import *
+from chaining import *
 
 while True:
     mode = input("Enter either:\n- '1' to parse a sentence as the KB\n- '2' to read a KB from files\n>> ")
@@ -39,6 +40,9 @@ while True:
         sentence = " | ".join(all_sentences)
         print(f"\nKB ready: {len(all_sentences)} sentence(s), {len(type_defs)} type_def(s), {len(stmts)} stmt(s), {len(extra_exprs)} extra_expr(s).\n")
         break
+
+print("... adding KB as atoms")
+kb_handler = build_kb_handler(type_defs + stmts + extra_exprs)
 
 while True:
     qcmd = input("\n====== ['/exit' to exit | '/save' to save] ======\n\nEnter a question: ")
@@ -78,7 +82,7 @@ while True:
 
         for q_idx, query in enumerate(q_queries):
             print(f"... handling query ({q_idx+1} of {len(q_queries)})")
-            chaining_result = chaining(type_defs + q_type_defs + stmts + q_stmts + q_extra_exprs, query)
+            chaining_result = chaining(q_type_defs + q_stmts + q_extra_exprs, query, handler=kb_handler)
 
             # TODO: check if the chaining result is what we want
 
