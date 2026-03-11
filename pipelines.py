@@ -150,7 +150,7 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1, mode
         "content": system_prompt
     }]
 
-    # will try to resolve cross-sentence coreferences if a context is given
+    # will try to resolve cross-sentence coreferences etc. if a context is given
     llm_outputs = to_openrouter(create_nl2pln_parsing_prompt(sentence, context), output_format=output_format, history=chat_history, model=model, effort=effort)
 
     if mode == "querying":
@@ -165,65 +165,44 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1, mode
 
     print(f"### {sentence} ###\n```", *(type_defs + stmts + queries), "```\n", sep="\n")
 
-    # TODO: re-enable it if needed
-    # print(f"... creating Equivalence with existing predicates (FAISS current size: {sum([index.ntotal for index in faiss_store.indices.values()])})")
     extra_exprs = []
-    # pred_arity_list = extract_predicates_with_arity(stmts + queries)
-    # for pa in pred_arity_list:
-    #     pred = pa[0]
-    #     arity = pa[1]
-    #     similar_preds = faiss_store.search_and_store(pred, arity)["matches"]
-    #     # generate a Equivalence for each pair of similar predicates
-    #     for s_pred in similar_preds:
-    #         s_pred_name, stv_strength = s_pred[0], s_pred[1]
-    #         variables = [f"$var_{i}" for i in range(arity)]
-    #         vars_str = " ".join(variables)
-    #         eq_expr = f"(: {pred.lower()}_{s_pred_name.lower()}_eq (Equivalence ({pred} {vars_str}) ({s_pred_name} {vars_str})) (STV {stv_strength:.3f} 0.9))"
-    #         extra_exprs.append(eq_expr)
-    #         print(f'... generated: "{eq_expr}"')
+
+    # store predicates in FAISS for later equivalence generation
+    pred_arity_list = extract_predicates_with_arity(stmts + queries)
+    for pred, arity in pred_arity_list:
+        faiss_store.store(pred, arity)
 
     return (type_defs, stmts, queries, extra_exprs, sent_links)
 
 
-def assisted_qa(all_type_defs, all_stmts, query, kb_nl="", query_nl="", max_back_forth=10, sibling_queries=[]):
-    chat_history = [{
-        "role": "system",
-        "content": add_missing_knowledge_system_prompt
-    }]
+def generate_equivalences(threshold: float = 0.7):
+    """
+    Iterates over all predicates stored in the FAISS index, finds pairs whose cosine
+    similarity meets the threshold, and returns Equivalence expressions for each unique pair.
 
-    a_type_defs = []
-    a_rules = []
-    a_rules_nl = ""
+    Call this manually after parsing a batch of sentences to avoid duplicate expressions
+    that would arise from inline per-sentence generation.
+    """
+    equivalences = []
+    seen_pairs = set()
 
-    while True:
-        attempts = int((len(chat_history)-1)/2)
-        all_type_defs = list(set(all_type_defs + a_type_defs))
-        all_stmts = list(set(all_stmts + a_rules))
+    for arity, id_map in faiss_store.id_to_word.items():
+        all_preds = list(id_map.values())
+        for pred in all_preds:
+            matches = faiss_store.search(pred, arity, threshold=threshold)
+            for s_pred_name, stv_strength in matches:
+                pair = frozenset({pred, s_pred_name})
+                if pair in seen_pairs:
+                    continue
+                seen_pairs.add(pair)
+                variables = [f"$var_{i}" for i in range(arity)]
+                vars_str = " ".join(variables)
+                eq_expr = f"(: {pred.lower()}_{s_pred_name.lower()}_eq (Equivalence ({pred} {vars_str}) ({s_pred_name} {vars_str})) (STV {stv_strength:.3f} 0.9))"
+                equivalences.append(eq_expr)
+                print(f'... generated: "{eq_expr}"')
 
-        chaining_result = chaining(all_type_defs + all_stmts, query)
-
-        if chaining_result:
-            return (chaining_result, a_type_defs, a_rules, a_rules_nl)
-        # only 1 attempt will be made for now, until we find a way to know the failure is due to bad representations
-        elif attempts >= 1:
-            print(f"Failed to answer '{query}', skipping for now...")
-            # for later debugging
-            # print_test_case(all_type_defs + all_stmts, query, kb_nl=kb_nl, query_nl=query_nl)
-            break
-        else:
-            print(f"... trying to fill in missing pieces before retrying for '{query}'")
-            llm_outputs = to_openrouter(create_missing_exprs_prompt(all_stmts, query), history=chat_history, output_format=AddPLNExprs)
-
-            # TODO: re-enable this to be more strict
-            # format_check_result = format_check_correct(llm_outputs, chat_history, AddPLNExprs, max_back_forth=max_back_forth, model=model, effort=effort, related_exprs={"type_defs": all_type_defs, "stmts": all_stmts, "queries": sibling_queries})
-            # if format_check_result:
-            #     a_type_defs, a_rules, _ = format_check_result
-            #     a_rules_nl = llm_outputs["rules_nl"]
-            #     print(f"Newly proposed:\n```\na_type_defs = {a_type_defs}\na_rules = {a_rules}\na_rules_nl = {a_rules_nl}\n```\n")
-            a_type_defs, a_rules, a_rules_nl = llm_outputs["type_defs"], llm_outputs["rules"], llm_outputs["rules_nl"]
-            print(f"Newly proposed:\n```\na_type_defs = {a_type_defs}\na_rules = {a_rules}\na_rules_nl = {a_rules_nl}\n```\n")
-
-    return ([], a_type_defs, a_rules, a_rules_nl)
+    print(f"Generated {len(equivalences)} Equivalence expression(s) from {sum(len(m.values()) for m in faiss_store.id_to_word.values())} stored predicate(s).")
+    return equivalences
 
 
 def pln2nl(chaining_results):
@@ -269,3 +248,44 @@ def pln2nl(chaining_results):
     sentences = llm_outputs["sentences"]
 
     return sentences
+
+
+def assisted_qa(all_type_defs, all_stmts, query, kb_nl="", query_nl="", max_back_forth=10, sibling_queries=[]):
+    chat_history = [{
+        "role": "system",
+        "content": add_missing_knowledge_system_prompt
+    }]
+
+    a_type_defs = []
+    a_rules = []
+    a_rules_nl = ""
+
+    while True:
+        attempts = int((len(chat_history)-1)/2)
+        all_type_defs = list(set(all_type_defs + a_type_defs))
+        all_stmts = list(set(all_stmts + a_rules))
+
+        chaining_result = chaining(all_type_defs + all_stmts, query)
+
+        if chaining_result:
+            return (chaining_result, a_type_defs, a_rules, a_rules_nl)
+        # only 1 attempt will be made for now, until we find a way to know the failure is due to bad representations
+        elif attempts >= 1:
+            print(f"Failed to answer '{query}', skipping for now...")
+            # for later debugging
+            # print_test_case(all_type_defs + all_stmts, query, kb_nl=kb_nl, query_nl=query_nl)
+            break
+        else:
+            print(f"... trying to fill in missing pieces before retrying for '{query}'")
+            llm_outputs = to_openrouter(create_missing_exprs_prompt(all_stmts, query), history=chat_history, output_format=AddPLNExprs)
+
+            # TODO: re-enable this to be more strict
+            # format_check_result = format_check_correct(llm_outputs, chat_history, AddPLNExprs, max_back_forth=max_back_forth, model=model, effort=effort, related_exprs={"type_defs": all_type_defs, "stmts": all_stmts, "queries": sibling_queries})
+            # if format_check_result:
+            #     a_type_defs, a_rules, _ = format_check_result
+            #     a_rules_nl = llm_outputs["rules_nl"]
+            #     print(f"Newly proposed:\n```\na_type_defs = {a_type_defs}\na_rules = {a_rules}\na_rules_nl = {a_rules_nl}\n```\n")
+            a_type_defs, a_rules, a_rules_nl = llm_outputs["type_defs"], llm_outputs["rules"], llm_outputs["rules_nl"]
+            print(f"Newly proposed:\n```\na_type_defs = {a_type_defs}\na_rules = {a_rules}\na_rules_nl = {a_rules_nl}\n```\n")
+
+    return ([], a_type_defs, a_rules, a_rules_nl)

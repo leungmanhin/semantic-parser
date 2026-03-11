@@ -23,16 +23,11 @@ class SemanticArityIndex:
             self.word_to_id[arity] = {}
         return self.indices[arity]
 
-    def search_and_store(self, word: str, arity: int, n_closest: int = 10, threshold: float = 0.7):
+    def store(self, word: str, arity: int):
         """
-        1. Generates embedding for 'word'.
-        2. Stores it in the correct arity-index (if missing).
-        3. Returns the N closest matches meeting the threshold.
+        Generates embedding for 'word' and stores it in the correct arity-index (if not already present).
         """
-        # 1. Generate Embedding (normalized for Cosine Similarity)
         embedding = get_embedding(word).reshape(1, -1)
-
-        # 2. Manage Index & Storage
         index = self._get_or_create_index(arity)
         word_map = self.word_to_id[arity]
         id_map = self.id_to_word[arity]
@@ -42,41 +37,36 @@ class SemanticArityIndex:
             index.add(embedding)
             word_map[word] = new_id
             id_map[new_id] = word
-            is_new = True
-        else:
-            is_new = False
 
-        # 3. Search
-        # We search for n_closest + 1 because the word itself is now in the index
-        # and will be the top result (score ~1.0). We want to filter it out.
-        k_search = n_closest + 1
-        distances, indices = index.search(embedding, k_search)
+    def search(self, word: str, arity: int, n_closest: int = 10, threshold: float = 0.7):
+        """
+        Returns the N closest stored predicates to 'word' (by cosine similarity) that meet the threshold.
+        'word' must already be stored; raises KeyError otherwise.
+        """
+        index = self._get_or_create_index(arity)
+        word_map = self.word_to_id[arity]
+        id_map = self.id_to_word[arity]
+
+        if word not in word_map:
+            raise KeyError(f"'{word}' (arity {arity}) is not in the index. Call store() first.")
+
+        embedding = get_embedding(word).reshape(1, -1)
+        distances, indices = index.search(embedding, n_closest + 1)
 
         results = []
-
-        # 4. Process Results
         for score, idx in zip(distances[0], indices[0]):
-            if idx == -1: continue  # FAISS placeholder for "not found"
-
+            if idx == -1:
+                continue
             found_word = id_map[idx]
-
             if found_word == word:
                 continue
-
             if score < threshold:
                 break
-
             results.append((found_word, float(score)))
-
             if len(results) >= n_closest:
                 break
 
-        return {
-            "query": word,
-            "arity": arity,
-            "is_newly_added": is_new,
-            "matches": results
-        }
+        return results
 
     def clear(self):
         self.indices = {}
