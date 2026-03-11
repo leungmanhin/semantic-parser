@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timezone, timedelta
 
 from pipelines import *
 from chaining import *
@@ -45,31 +44,11 @@ print("... adding KB as atoms")
 kb_handler = build_kb_handler(type_defs + stmts + extra_exprs)
 
 while True:
-    qcmd = input("\n====== ['/exit' to exit | '/save' to save] ======\n\nEnter a question: ")
+    qcmd = input("\n====== ['/exit' to exit] ======\n\nEnter a question: ")
 
     if qcmd == "/exit":
         print("... exiting")
         break
-    elif qcmd == "/save":
-        current_time = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d-%H-%M-%S")
-        qa_out_file = f"qa_{current_time}.json"
-        print(f"... saving to {qa_out_file}\n")
-        output_to_json_file({
-                "sentence": sentence,
-                "type_defs": type_defs,
-                "stmts": stmts,
-                "question": question,
-                "q_type_defs": q_type_defs,
-                "q_stmts": q_stmts,
-                "q_queries": q_queries,
-                "q_extra_exprs": q_extra_exprs,
-                "a_type_defs": a_type_defs,
-                "a_rules_nl": a_rules_nl,
-                "a_rules": a_rules,
-                "chaining_result": chaining_result
-            },
-            qa_out_file)
-        continue
 
     question = qcmd
     ques_result = nl2pln(question, mode="querying")
