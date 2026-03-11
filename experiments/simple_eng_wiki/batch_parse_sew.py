@@ -84,7 +84,7 @@ for art_i in art_indices:
     entry = articles[art_i]
     title = entry.get("title", entry.get("idx", art_i))
     sentences = entry["sentences"]
-    title_slug = title.replace(" ", "_")
+    title_slug = title.replace(" ", "")
     sp_out_file = os.path.join(script_dir, f"{base_name}_parses_{model}_{effort}_{title_slug}.json")
 
     print(f"=== Article {art_i} (title={title}, {len(sentences)} sentences) ===")
@@ -93,7 +93,7 @@ for art_i in art_indices:
     previous_parses = []
 
     for sent_i, sentence in enumerate(sentences):
-        print(f"... looking at sentence ({sent_i} out of {len(sentences)}): {sentence}")
+        print(f"... looking at sentence ({sent_i} out of {len(sentences)-1}): {sentence}")
 
         sent_result = nl2pln(sentence, mode="parsing", context=previous_parses, model=model, effort=effort)
         if sent_result is not None:
