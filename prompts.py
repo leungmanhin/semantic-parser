@@ -149,6 +149,12 @@ Similarly, a more fine-grained format for other types of PLN expressions should 
 `(: <prf_name> (<predicate> <instance_1> <instance_2>) (STV <strength> <confidence>))`
 Which can be read as: there is a proof `prf_name` that this statement, represented by the sub-expression formed by a predicate (`predicate`) and two arguments (`instance_1` and `instance_2`), is true probabilistically as stated by the given `strength` and `confidence` inside `STV`.
 Again, the sub-expression can have fewer or more than two instances as needed, and you will need to come up with a sensible `strength` and `confidence` values for each of these statements.
+When calibrating these values, keep in mind how the reasoner combines them during inference:
+- **Modus Ponens** (applying an `Implication` rule): `strength_result = strength_implication × strength_antecedent`, `confidence_result = confidence_implication`; because strengths multiply, a reasoning chain of three implications at strength 0.9 each yields only ~0.73 at the end; therefore use strength close to 1.0 for definitional or logically certain implications, and reserve lower values for genuinely uncertain rules
+- **And**: `strength_result = min(s1, s2, ...)`, `confidence_result = min(c1, c2, ...)`; the conjunction is only as strong and as confident as its weakest member
+- **Or**: `strength_result = min(s1, s2, ...)`, `confidence_result = max(c1, c2, ...)`
+- **Not**: `strength_result = 1 - s`, `confidence_result = c`; the `STV` on a `Not`-bearing statement should therefore reflect confidence the negation holds (already noted above)
+- `confidence` represents how reliable the information is regardless of its truth degree — use high confidence (0.9+) for statements directly supported by the input text, and lower confidence for inferred or uncertain information
 
 As a final note, when doing this conversion for a given sentence, you MUST identify all of its linguistic atomic semantic units first, and then construct the PLN expression(s) using these semantic units as basic buildling blocks.
 If you encounter some linguistic phenomenon that is not explicitly covered by the above guidelines, you will need to extrapolate and create PLN expressions in a similar and tightly consistent manner.
