@@ -59,9 +59,27 @@ def equivalence_to_implications(expr: str) -> tuple[str, str]:
     return fwd, bwd
 
 
+def _expand_equivalences(kb: list[str]) -> list[str]:
+    result = []
+    for expr in kb:
+        tokens = re.findall(r'\(|\)|[^\s()]+', expr)
+        try:
+            tree = _parse_sexp(tokens)
+            if (isinstance(tree, list) and len(tree) == 4
+                    and isinstance(tree[2], list) and tree[2]
+                    and tree[2][0] == 'Equivalence'):
+                result.extend(equivalence_to_implications(expr))
+                continue
+        except Exception:
+            pass
+        result.append(expr)
+    return result
+
+
 def build_kb_handler(kb):
     handler = PeTTaChainer()
     kb = [flatten_connectives(x) for x in kb]
+    kb = _expand_equivalences(kb)
     for x in kb:
         print(f"... adding to space: {x}")
         handler.add_atom(x.replace("'", ""))
@@ -73,6 +91,7 @@ def _main_chaining(kb, query, result_queue, handler, max_depth):
 
     # post-process to work more efficiently
     kb = [flatten_connectives(x) for x in kb]
+    kb = _expand_equivalences(kb)
     query = flatten_connectives(query)
     print(f"Chaining (post-processed):\n```\nkb = {kb}\nquery = {query}\n```")
 
