@@ -1,5 +1,6 @@
 import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 
 from checker_functions import *
 from chaining import chaining
@@ -143,6 +144,10 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1, mode
     output_format = PLNQueryExprs if mode == "querying" else PLNExprs
 
     print(f'\n... parsing "{sentence}" | context: {context}')
+
+    # prepend current wall-clock time so the LLM knows what sentence_creation_time resolves to
+    current_time = datetime.now().astimezone().isoformat(timespec='seconds')
+    context = [{"title": "Current time", "content": current_time}] + context
 
     # RAG: retrieve previously parsed sentences similar to this one and prepend as a context section
     if mode == "parsing":

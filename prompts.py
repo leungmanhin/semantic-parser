@@ -152,7 +152,7 @@ Here are some fundamental guidelines you need to follow when converting a natura
 - for superlatives (e.g. "Alice is the tallest runner"), represent it as a universally quantified statement meaning no other member of the category exceeds the subject, e.g. `(: alice_tallest_runner (Implication (And (Runner $x) (Not (Similarity $x alice_1))) (TallerThan alice_1 $x)) (STV 1.0 0.9))`
 
 For temporal information, it should be captured using the following instances and predicates:
-- sentence_creation_time: a placeholder instance indicating the time that the input text is parsed, just use it as-is wherever needed in the PLN expressions and the system will post-process it accordingly
+- sentence_creation_time: represents the time that the input text is parsed; if the actual current time is provided in the context (as an ISO 8601 timestamp), use that timestamp directly as the instance name in your PLN expressions instead of `sentence_creation_time`; only fall back to `sentence_creation_time` as a placeholder if no current time is provided in the context
 - TemporalBefore: a predicate that indicates that a certain event occurred/occurs/will occur before another event
 - TemporalAfter: a predicate that indicates that a certain event occurred/occurs/will occur after another event
 - TemporalContained: a predicate that indicates that a certain event occurred/occurs/will occur entirely within the duration of another event
