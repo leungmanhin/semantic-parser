@@ -3,7 +3,7 @@ import json
 import time
 import warnings
 import urllib.request
-from http.client import RemoteDisconnected
+from http.client import RemoteDisconnected, IncompleteRead
 import numpy as np
 from pydantic import create_model
 
@@ -44,7 +44,7 @@ def to_openrouter(prompt, model="gpt-5.4", effort="none", history=None, tools=[]
             content = result["choices"][0]["message"]["content"]
             history.append({"role": "assistant", "content": content})
             return json.loads(content)
-        except RemoteDisconnected as e:
+        except (RemoteDisconnected, IncompleteRead) as e:
             if attempt < MAX_RETRIES - 1:
                 print(f"Connection dropped, retrying in {RETRY_DELAY}s... (attempt {attempt + 1}/{MAX_RETRIES})")
                 time.sleep(RETRY_DELAY)
@@ -71,7 +71,7 @@ def get_embedding(word, model="text-embedding-3-large"):
                 result = json.loads(resp.read().decode("utf-8"))
             v = np.array(result["data"][0]["embedding"], dtype=np.float32)
             return v / np.linalg.norm(v)
-        except RemoteDisconnected as e:
+        except (RemoteDisconnected, IncompleteRead) as e:
             if attempt < MAX_RETRIES - 1:
                 print(f"Connection dropped, retrying in {RETRY_DELAY}s... (attempt {attempt + 1}/{MAX_RETRIES})")
                 time.sleep(RETRY_DELAY)
