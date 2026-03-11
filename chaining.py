@@ -64,7 +64,7 @@ def build_kb_handler(kb):
     kb = [flatten_connectives(x) for x in kb]
     for x in kb:
         print(f"... adding to space: {x}")
-        handler.add_atom(x)
+        handler.add_atom(x.replace("'", ""))
     return handler
 
 
@@ -85,7 +85,7 @@ def _main_chaining(kb, query, result_queue, handler, max_depth):
     try:
         for x in kb:
             print(f"... adding to space: {x}")
-            handler.add_atom(x)
+            handler.add_atom(x.replace("'", ""))
     except Exception as e:
         print(f"\n!!! EXCEPTION: {e}\n")
 
