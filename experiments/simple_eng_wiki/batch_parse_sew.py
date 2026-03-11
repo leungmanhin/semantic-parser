@@ -95,7 +95,7 @@ for art_i in art_indices:
     for sent_i, sentence in enumerate(sentences):
         print(f"... looking at sentence ({sent_i} out of {len(sentences)-1}): {sentence}")
 
-        sent_result = nl2pln(sentence, mode="parsing", context=previous_parses, model=model, effort=effort)
+        sent_result = nl2pln(sentence, mode="parsing", context=[{"title": "Preceding sentences in the same article", "entries": previous_parses}] if previous_parses else [], model=model, effort=effort)
         if sent_result is not None:
             type_defs, stmts, _, extra_exprs, sent_links = sent_result
 

@@ -23,14 +23,33 @@ class NLSents(BaseModel):
 class BridgingRules(BaseModel):
     bridging_rules: list[str]
 
+def _render_context(context) -> str:
+    """
+    Renders a list of context sections into a string.
+
+    Each section is a dict with:
+      - "title"   (optional str): header label for this section
+      - "entries" (optional list): each entry is {"sentence": str, "stmts": list[str]}
+      - "content" (optional str): free-form text (used instead of entries)
+    """
+    parts = []
+    for section in context:
+        title = section.get("title", "")
+        if title:
+            parts.append(f"## {title}")
+        if "entries" in section:
+            for entry in section["entries"]:
+                parts.append(f"# {entry['sentence']}\n{entry['stmts']}")
+        elif "content" in section:
+            parts.append(section["content"])
+        parts.append("")  # blank line between sections
+    return "\n".join(parts).strip()
+
 def create_nl2pln_parsing_prompt(text, context=[]):
-    context_str = ""
-    if context:
-        for c in context:
-            context_str += f"# {c['sentence']}\n{c['stmts']}\n\n"
+    context_str = _render_context(context) if context else ""
     return dedent(f"""
         <context>
-        {context_str.strip()}
+        {context_str}
         </context>
 
         <input_text>
@@ -39,13 +58,10 @@ def create_nl2pln_parsing_prompt(text, context=[]):
         """).strip()
 
 def create_nl2pln_querying_prompt(text, context=[]):
-    context_str = ""
-    if context:
-        for c in context:
-            context_str += f"# {c['sentence']}\n{c['stmts']}\n\n"
+    context_str = _render_context(context) if context else ""
     return dedent(f"""
         <context>
-        {context_str.strip()}
+        {context_str}
         </context>
 
         <input_question>

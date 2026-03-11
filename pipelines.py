@@ -144,12 +144,12 @@ def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1, mode
 
     print(f'\n... parsing "{sentence}" | context: {context}')
 
-    # RAG: retrieve previously parsed sentences similar to this one and prepend to context
+    # RAG: retrieve previously parsed sentences similar to this one and prepend as a context section
     if mode == "parsing":
-        rag_context = sentence_parses_store.search(sentence)
-        if rag_context:
-            print(f"... RAG: found {len(rag_context)} similar previously-parsed sentence(s)")
-        context = rag_context + context
+        rag_parses = sentence_parses_store.search(sentence)
+        if rag_parses:
+            print(f"... RAG: found {len(rag_parses)} similar previously-parsed sentence(s)")
+            context = [{"title": "Previously parsed sentences similar to the input_text", "entries": rag_parses}] + context
 
     # reset chat_history for each input sentence
     chat_history = [{
