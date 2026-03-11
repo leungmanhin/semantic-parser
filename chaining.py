@@ -4,6 +4,7 @@ import re
 import time
 import queue
 from pettachainer.pettachainer import PeTTaChainer
+from utils import stamp_parse_with_uuids
 
 
 def _parse_sexp(tokens):
@@ -80,6 +81,7 @@ def build_kb_handler(kb):
     handler = PeTTaChainer()
     kb = [flatten_connectives(x) for x in kb]
     kb = _expand_equivalences(kb)
+    kb, _ = stamp_parse_with_uuids(kb, [])
     for x in kb:
         print(f"... adding to space: {x}")
         handler.add_atom(x.replace("'", ""))
@@ -93,6 +95,7 @@ def _main_chaining(kb, query, result_queue, handler, max_depth):
     kb = [flatten_connectives(x) for x in kb]
     kb = _expand_equivalences(kb)
     query = flatten_connectives(query)
+    kb, [query] = stamp_parse_with_uuids(kb, [query])
     print(f"Chaining (post-processed):\n```\nkb = {kb}\nquery = {query}\n```")
 
     # may impact efficiency significantly
