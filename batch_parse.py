@@ -17,6 +17,7 @@ failed_cases = []
 if os.path.exists(os.path.join(FAISS_DIR, "config.json")):
     if input(f"Existing FAISS store found in '{FAISS_DIR}', load it? (Y/N): ").lower() == "y":
         faiss_store = SemanticArityIndex.load(FAISS_DIR)
+        sentence_parses_store = SentenceParsesIndex.load(FAISS_DIR)
 
 filename = input("Enter the full name of the JSON file to be parsed: ")
 
@@ -70,6 +71,7 @@ for i in range(start_idx, end_idx + 1):
         })
         output_to_json_file(all_outputs, sp_out_file)
         faiss_store.save(FAISS_DIR)
+        sentence_parses_store.save(FAISS_DIR)
         if enable_context:
             previous_parses.append({
                 "sentence": sentence,

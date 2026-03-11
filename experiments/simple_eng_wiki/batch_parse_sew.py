@@ -18,6 +18,7 @@ failed_cases = []
 if os.path.exists(os.path.join(FAISS_DIR, "config.json")):
     if input(f"Existing FAISS store found in '{FAISS_DIR}', load it? (Y/N): ").lower() == "y":
         faiss_store = SemanticArityIndex.load(FAISS_DIR)
+        sentence_parses_store = SentenceParsesIndex.load(FAISS_DIR)
 
 json_files = sorted(glob.glob(os.path.join(script_dir, "*_sentences.json")))
 if not json_files:
@@ -111,6 +112,7 @@ for art_i in art_indices:
             })
             output_to_json_file(article_outputs, sp_out_file)
             faiss_store.save(FAISS_DIR)
+            sentence_parses_store.save(FAISS_DIR)
             previous_parses = (previous_parses + [{"sentence": sentence, "stmts": stmts}])[-5:]
         else:
             failed_cases.append((art_i, sentence))
