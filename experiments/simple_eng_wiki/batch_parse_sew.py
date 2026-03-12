@@ -7,7 +7,7 @@ from pipelines import *
 from vector_index import *
 
 model = "gpt-5.4"
-effort = "none"
+effort = "high"
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 FAISS_DIR = "data/faiss"
@@ -88,7 +88,7 @@ for art_i in art_indices:
     title_slug = title.replace(" ", "")
     sp_out_file = os.path.join(script_dir, f"{base_name}_parses_{model}_{effort}_{title_slug}.json")
 
-    print(f"=== Article {art_i} (title={title}, {len(sentences)} sentences) ===")
+    print(f"=== Article {art_i} (title: {title}, {len(sentences)} sentences) ===")
 
     article_outputs = []
     previous_parses = []
@@ -96,7 +96,7 @@ for art_i in art_indices:
     for sent_i, sentence in enumerate(sentences):
         print(f"... looking at sentence ({sent_i} out of {len(sentences)-1}): {sentence}")
 
-        sent_result = nl2pln(sentence, mode="parsing", context=[{"title": "Preceding sentences in the same article", "entries": previous_parses}] if previous_parses else [], model=model, effort=effort)
+        sent_result = nl2pln(sentence, mode="parsing", context=[{"title": "Preceding sentence-stmts pairs parsed in the same article", "entries": previous_parses}] if previous_parses else [], model=model, effort=effort)
         if sent_result is not None:
             type_defs, stmts, _, extra_exprs, sent_links = sent_result
 

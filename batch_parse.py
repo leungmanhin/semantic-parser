@@ -57,7 +57,7 @@ for i in range(start_idx, end_idx + 1):
 
     # TODO: find a better way to identify what's a relevant context for the sentence, now it's only naively passing the previous N sentences
     prev = previous_parses[-5:]
-    sent_result = nl2pln(sentence, mode="parsing", context=[{"title": "Preceding sentences that may be relevant to the input_text", "entries": prev}] if prev else [])
+    sent_result = nl2pln(sentence, mode="parsing", context=[{"title": "Previously parsed sentence-stmts pairs that may be relevant to the input_text", "entries": prev}] if prev else [])
     if sent_result is not None:
         type_defs, stmts, _, extra_exprs, sent_links = sent_result
 

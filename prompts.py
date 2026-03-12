@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from textwrap import dedent
 
 from built_in import *
 
@@ -36,10 +35,14 @@ def _render_context(context) -> str:
     for section in context:
         title = section.get("title", "")
         if title:
-            parts.append(f"## {title}")
+            parts.append(f"### {title} ###")
         if "entries" in section:
             for entry in section["entries"]:
-                parts.append(f"# {entry['sentence']}\n{entry['stmts']}")
+                parts.append(f"sentence:\n{entry['sentence']}")
+                parts.append("stmts:")
+                for stmt in entry["stmts"]:
+                    parts.append(f"{stmt}")
+                parts.append("")
         elif "content" in section:
             parts.append(section["content"])
         parts.append("")  # blank line between sections
@@ -47,67 +50,23 @@ def _render_context(context) -> str:
 
 def create_nl2pln_parsing_prompt(text, context=[]):
     context_str = _render_context(context) if context else ""
-    return dedent(f"""
-        <context>
-        {context_str}
-        </context>
-
-        <input_text>
-        {text}
-        </input_text>
-        """).strip()
+    return f"<context>\n{context_str}\n</context>\n\n<input_text>\n{text}\n</input_text>".strip()
 
 def create_nl2pln_querying_prompt(text, context=[]):
     context_str = _render_context(context) if context else ""
-    return dedent(f"""
-        <context>
-        {context_str}
-        </context>
-
-        <input_question>
-        {text}
-        </input_question>
-        """).strip()
+    return f"<context>\n{context_str}\n</context>\n\n<input_question>\n{text}\n</input_question>".strip()
 
 def create_nl2pln_correction_prompt(correction):
-    return dedent(f"""
-        <correction_comments>
-        {correction}
-        </correction_comments>
-        """).strip()
+    return f"<correction_comments>\n{correction}\n</correction_comments>".strip()
 
 def create_missing_exprs_prompt(k_exprs, q_expr):
-    return dedent(f"""
-        <knowledge_exprs>
-        {k_exprs}
-        </knowledge_exprs>
-
-        <query_expr>
-        {q_expr}
-        </query_expr>
-        """).strip()
+    return f"<knowledge_exprs>\n{k_exprs}\n</knowledge_exprs>\n\n<query_expr>\n{q_expr}\n</query_expr>".strip()
 
 def create_pln2nl_prompt(target_exprs):
-    return dedent(f"""
-        <target_exprs>
-        {target_exprs}
-        </target_exprs>
-        """).strip()
+    return f"<target_exprs>\n{target_exprs}\n</target_exprs>".strip()
 
 def create_bridging_rules_prompt(max_common_subgraph, variations_1, variations_2):
-    return dedent(f"""
-        <max_common_subgraph>
-        {max_common_subgraph}
-        </max_common_subgraph>
-
-        <variations_1>
-        {variations_1}
-        </variations_1>
-
-        <variations_2>
-        {variations_2}
-        </variations_2>
-        """).strip()
+    return f"<max_common_subgraph>\n{max_common_subgraph}\n</max_common_subgraph>\n\n<variations_1>\n{variations_1}\n</variations_1>\n\n<variations_2>\n{variations_2}\n</variations_2>".strip()
 
 
 base_instructions = f"""
