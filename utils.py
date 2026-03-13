@@ -8,30 +8,56 @@ def stamp_parse_with_uuids(
     queries: list[str],
 ) -> tuple[list[str], list[str]]:
     """
-    Append a short UUID suffix to every ground identifier (instances and proof
-    names) in `stmts` and `queries`. A shared mapping ensures the same base
-    name always resolves to the same stamped identifier within one parse, so
-    intra-sentence connections are preserved.
+    Append a short UUID suffix to proof names and specific instance identifiers
+    in `stmts` and `queries`, leaving generic concept names untouched.
 
-    Tokens are stamped iff they match ^[a-z][a-z0-9_]*$ — i.e. snake_case
-    identifiers. Everything else (parentheses, ':', '->', variables starting
-    with '$', UpperCamelCase predicates/built-ins, numbers, quoted strings) is
-    left untouched. Type definitions are excluded by the caller since they
-    contain only predicate names and type keywords.
+    Under the current naming convention, specific instances always end with a
+    numeric suffix (e.g. alice_1, cut_evt_1, apple_group_1) while generic
+    concept names do not (e.g. dog, cut_event, fast). A token is stamped iff:
+      1. It is a proof name (the snake_case identifier immediately following ':'
+         in a PLN expression), OR
+      2. It is a snake_case identifier ending with _<digits> (a specific instance)
+
+    Everything else is left untouched: variables ($x), UpperCamelCase predicates
+    (IsA, Loves), generic concept names (dog, fast), numbers, quoted strings.
+
+    A shared mapping ensures the same base name always maps to the same stamped
+    name within one call, preserving intra-sentence connections.
     """
-    _GROUND_ID = re.compile(r'^[a-z][a-z0-9_]*$')
+    _INSTANCE_ID = re.compile(r'^[a-z][a-z0-9_]*_\d+$')
+    _SNAKE_ID = re.compile(r'^[a-z][a-z0-9_]*$')
     mapping: dict[str, str] = {}
 
-    def stamp_token(tok: str) -> str:
-        if _GROUND_ID.match(tok):
-            if tok not in mapping:
-                mapping[tok] = f"{tok}_{uuid.uuid4().hex[:8]}"
-            return mapping[tok]
-        return tok
+    def stamp(tok: str) -> str:
+        if tok not in mapping:
+            mapping[tok] = f"{tok}_{uuid.uuid4().hex[:8]}"
+        return mapping[tok]
 
     def stamp_expr(expr: str) -> str:
         tokens = re.findall(r'"[^"]*"|\(|\)|[^\s()]+', expr)
-        joined = " ".join(stamp_token(t) for t in tokens)
+        result = []
+        stamp_next = False
+
+        for tok in tokens:
+            if tok in ('(', ')'):
+                result.append(tok)
+            elif tok == ':':
+                result.append(tok)
+                stamp_next = True
+            elif stamp_next:
+                # This token is a proof name — stamp if snake_case, else leave as-is
+                # (queries use $prf as proof name, which should not be stamped)
+                result.append(stamp(tok) if _SNAKE_ID.match(tok) else tok)
+                stamp_next = False
+            elif _INSTANCE_ID.match(tok):
+                # Specific instance (ends with _<digits>) — stamp it
+                result.append(stamp(tok))
+            else:
+                # Variables, UpperCamelCase predicates, generic concept names,
+                # numbers, quoted strings, special tokens — leave untouched
+                result.append(tok)
+
+        joined = " ".join(result)
         joined = re.sub(r'\( ', '(', joined)
         joined = re.sub(r' \)', ')', joined)
         return joined
