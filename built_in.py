@@ -18,6 +18,7 @@ built_in_ops = [
     "TemporalOverlap",
     "IsA",
     "HasAttribute",
+    "Has",
 ]
 
 built_in_type_defs = [
@@ -35,6 +36,7 @@ built_in_type_defs = [
     "(: TemporalOverlap (-> Concept Concept Type))",
     "(: IsA (-> Concept Concept Type))",
     "(: HasAttribute (-> Concept Concept Type))",
+    "(: Has (-> Concept Concept Type))",
 ]
 
 pad_str = "\n- "
