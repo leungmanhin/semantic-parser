@@ -86,7 +86,7 @@ for art_i in art_indices:
     title = entry.get("title", entry.get("idx", art_i))
     sentences = entry["sentences"]
     title_slug = title.replace(" ", "")
-    sp_out_file = os.path.join(script_dir, f"{base_name}_parses_{model}_{effort}_{title_slug}.json")
+    sp_out_file = os.path.join(script_dir, f"{base_name}_parses_{model.replace('/', '-')}_{effort}_{title_slug}.json")
 
     print(f"=== Article {art_i} (title: {title}, {len(sentences)} sentences) ===")
 
