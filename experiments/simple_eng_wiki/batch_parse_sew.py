@@ -6,7 +6,8 @@ from datetime import datetime, timezone, timedelta
 from pipelines import *
 from vector_index import *
 
-model = "gpt-5.4"
+model = "gpt-5.4-mini"
+# model = "moonshotai/kimi-k2.5"
 effort = "high"
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,8 +18,8 @@ failed_cases = []
 
 if os.path.exists(os.path.join(FAISS_DIR, "config.json")):
     if input(f"Existing FAISS store found in '{FAISS_DIR}', load it? (Y/N): ").lower() == "y":
-        faiss_store = SemanticArityIndex.load(FAISS_DIR)
-        sentence_parses_store = SentenceParsesIndex.load(FAISS_DIR)
+        faiss_store.load_from(FAISS_DIR)
+        sentence_parses_store.load_from(FAISS_DIR)
 
 json_files = sorted(glob.glob(os.path.join(script_dir, "*_sentences.json")))
 if not json_files:

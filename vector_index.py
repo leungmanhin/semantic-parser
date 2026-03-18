@@ -101,26 +101,32 @@ class SemanticArityIndex:
             with open(meta_path, "wb") as f:
                 pickle.dump(meta, f)
 
-    @classmethod
-    def load(cls, folder_path: str):
+    def load_from(self, folder_path: str):
+        """Load data from disk into this existing instance (in-place update)."""
         config_path = os.path.join(folder_path, "config.json")
         with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
 
-        instance = cls()
+        self.indices = {}
+        self.id_to_word = {}
+        self.word_to_id = {}
 
         for arity in config["arities"]:
             index_path = os.path.join(folder_path, f"arity_{arity}.index")
             meta_path = os.path.join(folder_path, f"arity_{arity}_meta.pkl")
 
-            instance.indices[arity] = faiss.read_index(index_path)
+            self.indices[arity] = faiss.read_index(index_path)
 
             with open(meta_path, "rb") as f:
                 meta = pickle.load(f)
 
-            instance.id_to_word[arity] = meta["id_to_word"]
-            instance.word_to_id[arity] = meta["word_to_id"]
+            self.id_to_word[arity] = meta["id_to_word"]
+            self.word_to_id[arity] = meta["word_to_id"]
 
+    @classmethod
+    def load(cls, folder_path: str):
+        instance = cls()
+        instance.load_from(folder_path)
         return instance
 
 faiss_store = SemanticArityIndex()
@@ -186,16 +192,20 @@ class SentenceParsesIndex:
         with open(os.path.join(folder_path, "sentences_meta.pkl"), "wb") as f:
             pickle.dump(self.id_to_parse, f)
 
+    def load_from(self, folder_path: str):
+        """Load data from disk into this existing instance (in-place update)."""
+        index_path = os.path.join(folder_path, "sentences.index")
+        meta_path = os.path.join(folder_path, "sentences_meta.pkl")
+        self.index = faiss.read_index(index_path) if os.path.exists(index_path) else None
+        self.id_to_parse = {}
+        if os.path.exists(meta_path):
+            with open(meta_path, "rb") as f:
+                self.id_to_parse = pickle.load(f)
+
     @classmethod
     def load(cls, folder_path: str):
         instance = cls()
-        index_path = os.path.join(folder_path, "sentences.index")
-        meta_path = os.path.join(folder_path, "sentences_meta.pkl")
-        if os.path.exists(index_path):
-            instance.index = faiss.read_index(index_path)
-        if os.path.exists(meta_path):
-            with open(meta_path, "rb") as f:
-                instance.id_to_parse = pickle.load(f)
+        instance.load_from(folder_path)
         return instance
 
 
