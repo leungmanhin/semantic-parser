@@ -42,9 +42,16 @@ def to_openrouter(prompt, model="gpt-5.4", effort="none", history=None, tools=[]
             with urllib.request.urlopen(req) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
             content = result["choices"][0]["message"]["content"]
+            if content is None:
+                if attempt < MAX_RETRIES - 1:
+                    print(f"API returned null content, retrying in {RETRY_DELAY}s... (attempt {attempt + 1}/{MAX_RETRIES})")
+                    print(f"  Full response: {result}")
+                    time.sleep(RETRY_DELAY)
+                    continue
+                raise ValueError(f"API returned null content after {MAX_RETRIES} attempts. Full response: {result}")
             history.append({"role": "assistant", "content": content})
             return json.loads(content)
-        except (RemoteDisconnected, IncompleteRead) as e:
+        except (RemoteDisconnected, IncompleteRead, urllib.error.URLError, ConnectionError) as e:
             if attempt < MAX_RETRIES - 1:
                 print(f"Connection dropped, retrying in {RETRY_DELAY}s... (attempt {attempt + 1}/{MAX_RETRIES})")
                 time.sleep(RETRY_DELAY)
@@ -69,9 +76,16 @@ def get_embedding(word, model="text-embedding-3-large"):
         try:
             with urllib.request.urlopen(req) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
+            if "data" not in result:
+                if attempt < MAX_RETRIES - 1:
+                    print(f"Embedding API error, retrying in {RETRY_DELAY}s... (attempt {attempt + 1}/{MAX_RETRIES})")
+                    print(f"  Full response: {result}")
+                    time.sleep(RETRY_DELAY)
+                    continue
+                raise ValueError(f"Embedding API error after {MAX_RETRIES} attempts. Full response: {result}")
             v = np.array(result["data"][0]["embedding"], dtype=np.float32)
             return v / np.linalg.norm(v)
-        except (RemoteDisconnected, IncompleteRead) as e:
+        except (RemoteDisconnected, IncompleteRead, urllib.error.URLError, ConnectionError) as e:
             if attempt < MAX_RETRIES - 1:
                 print(f"Connection dropped, retrying in {RETRY_DELAY}s... (attempt {attempt + 1}/{MAX_RETRIES})")
                 time.sleep(RETRY_DELAY)
