@@ -68,6 +68,32 @@ class SemanticArityIndex:
 
         return results
 
+    def remove(self, word: str, arity: int):
+        """
+        Remove a predicate from the index by name and arity.
+        Raises KeyError if the word is not found.
+        """
+        if arity not in self.word_to_id or word not in self.word_to_id[arity]:
+            raise KeyError(f"'{word}' (arity {arity}) is not in the index.")
+
+        word_map = self.word_to_id[arity]
+        id_map = self.id_to_word[arity]
+        index = self.indices[arity]
+
+        removed_id = word_map[word]
+
+        selector = faiss.IDSelectorBatch(np.array([removed_id], dtype=np.int64))
+        index.remove_ids(selector)
+
+        # After removal, FAISS recompacts: all IDs > removed_id shift down by 1.
+        del word_map[word]
+        del id_map[removed_id]
+
+        shifted = {(fid - 1 if fid > removed_id else fid): w
+                   for fid, w in id_map.items()}
+        self.id_to_word[arity] = shifted
+        self.word_to_id[arity] = {w: fid for fid, w in shifted.items()}
+
     def clear(self):
         self.indices = {}
         self.id_to_word = {}
