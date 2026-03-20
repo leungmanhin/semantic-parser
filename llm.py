@@ -53,7 +53,7 @@ def to_openrouter(prompt, model="gpt-5.4", effort="none", history=None, tools=[]
             return json.loads(content)
         except (RemoteDisconnected, IncompleteRead, urllib.error.URLError, ConnectionError) as e:
             if attempt < MAX_RETRIES - 1:
-                print(f"Connection dropped, retrying in {RETRY_DELAY}s... (attempt {attempt + 1}/{MAX_RETRIES})")
+                print(f"Connection dropped ({e}), retrying in {RETRY_DELAY}s... (attempt {attempt + 1}/{MAX_RETRIES})")
                 time.sleep(RETRY_DELAY)
             else:
                 raise
