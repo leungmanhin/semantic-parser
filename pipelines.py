@@ -11,7 +11,7 @@ from utils import *
 from vector_index import *
 
 
-def format_check_correct(llm_outputs, chat_history, output_format, max_back_forth=10, model="gpt-5.4", effort="none", related_exprs={}):
+def format_check_correct(llm_outputs, chat_history, output_format, max_back_forth=10, model="gpt-5.4-mini", effort="high", related_exprs={}):
     while True:
         attempts = int((len(chat_history)-1)/2)
         print(f"[attempts = {attempts}]")
@@ -110,7 +110,7 @@ def format_check_correct(llm_outputs, chat_history, output_format, max_back_fort
 
 
 # mode = "parsing" | "querying"
-def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1, model="gpt-5.4", effort="none"):
+def nl2pln(sentence, context=[], mode="parsing", max_back_forth=10, runs=1, model="gpt-5.4-mini", effort="high"):
     if runs > 1:
         with ThreadPoolExecutor(max_workers=runs) as executor:
             futures = [

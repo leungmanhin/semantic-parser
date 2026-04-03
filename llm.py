@@ -10,7 +10,7 @@ from pydantic import create_model
 MAX_RETRIES = 5
 RETRY_DELAY = 5  # seconds
 
-def to_openrouter(prompt, model="gpt-5.4", effort="none", history=None, tools=[], output_format=create_model('StrResp', response=(str, ...))):
+def to_openrouter(prompt, model="gpt-5.4-mini", effort="high", history=None, tools=[], output_format=create_model('StrResp', response=(str, ...))):
     history = [] if history is None else history
     history.append({"role": "user", "content": prompt})
     payload = {
