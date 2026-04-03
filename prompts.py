@@ -218,14 +218,22 @@ nl2pln_querying_system_prompt = f"""
 The above, as wrapped using a pair of "guidelines" tags, are the guidelines for converting a given text into PLN expressions.
 You will need to take them as a reference in order to create one or more backward chaining queries to the system for answering a question that the user is posting.
 
-Each backward chainer query can also be seen as a PLN expression but with variables in place of what the user is querying.
-Each backward chainer query should be formatted to look like:
-`(: $prf ($predicate $instance) $tv)`
-Which can be read as: find a proof (`$prf`) of something represented in a relational structure formed by variables `$predicate` and `$instance`, which is true probabilistically to what degree (`$tv`).
-You must keep the proof (`$prf`) and the truth value (`$tv`) as variables since that's what the query wants to find in the knowledge base through reasoning, but you can of course change any of the variables in the expr_body (i.e. `$predicate` and `$instance`) to specific values as needed according to what the question is asking;
-and the sub-expression can have a more complex structure, or have multiple sub-expressions interconnected together using the built-in connectives like `And`, `Or`, etc. to express the needed logical structure.
-Make sure to use the above guidelines as a reference to guess how the needed knowledge is represented in the system, and so you will structure the backward chaining query accordingly to maximize the chance of getting that knowledge (and so answering the user's question).
-Remember, sometimes even a specific entity, e.g. a named entity supposedly referring to a specific person, may need to be referenced as a variable in a query, since you don't know which exact instance has been used in the knowledge base to represent him, unless you are able to find it in the context.
+A backward chainer query is a PLN expression with variables in place of the unknowns that the user wants to find. The general format is:
+`(: $prf <query_body> $tv)`
+Where `$prf` (the proof) and `$tv` (the truth value) must always remain as variables — they are what the backward chainer will search for and return. The `<query_body>` is where you encode what the question is asking about, using the same PLN expression structures described in the guidelines above.
+
+The query body can range from simple to complex, for example:
+- Simple unary: `(: $prf (IsA $x dog) $tv)` — find anything that is a dog
+- Binary predicate: `(: $prf (Love $x $y) $tv)` — find who loves whom
+- Partially grounded: `(: $prf (HasAttribute $x tall) $tv)` — find anything that is tall (concept name `tall` is fixed, entity is a variable)
+- Compound: `(: $prf (And (IsA $x cat) (HasAttribute $x fluffy)) $tv)` — find entities that are both a cat and fluffy
+- Implication pattern: `(: $prf (Implication (Premises (IsA $x bird)) (Conclusions $what)) $tv)` — find generic rules about what is true of all birds
+
+Within the query body, you should fix variables to specific known values to narrow the search based on what the question is asking about. For example, "What do we know about dogs?" → `(: $prf (IsA $x dog) $tv)` fixes the concept to `dog`; "Who loves whom?" → `(: $prf (Love $x $y) $tv)` leaves both arguments as variables.
+
+An important constraint on querying: instance names (e.g. `alice_1`, `fido_1`) in the knowledge base are post-processed with unique suffixes for global uniqueness. Because of this, you cannot use instance names directly in a query — they will not match their knowledge base counterparts. Always use variables in place of where instances would appear. However, concept names (e.g. `dog`, `tall`, `cancer`), predicate names (e.g. `Cut`, `Love`), and built-in operators (e.g. `IsA`, `HasAttribute`, `And`) are not affected by this and should be used as-is when you know what to query for.
+
+Make sure to use the above guidelines as a reference to anticipate how the needed knowledge is represented in the system, and structure the backward chaining query accordingly to maximize the chance of retrieving it.
 
 As a task, you will be given one or more of the following as inputs:
 - input_question: the question/statement that the user is posting to the system looking for an answer/reply, wrapped within a pair of input_question tags
