@@ -281,7 +281,8 @@ def assisted_qa(all_type_defs, all_stmts, query, kb_nl="", query_nl="", max_back
         all_type_defs = list(set(all_type_defs + a_type_defs))
         all_stmts = list(set(all_stmts + a_rules))
 
-        chaining_result = chaining(all_type_defs + all_stmts, query)
+        # chaining_result = chaining(all_type_defs + all_stmts, query)
+        chaining_result = chaining(all_stmts, query)
 
         if chaining_result:
             return (chaining_result, a_type_defs, a_rules, a_rules_nl)

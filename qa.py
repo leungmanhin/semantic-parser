@@ -41,7 +41,8 @@ while True:
         break
 
 print("... adding KB as atoms")
-kb_handler = build_kb_handler(type_defs + stmts + extra_exprs)
+# kb_handler = build_kb_handler(type_defs + stmts + extra_exprs)
+kb_handler = build_kb_handler(stmts + extra_exprs)
 
 while True:
     qcmd = input("\n====== ['/exit' to exit] ======\n\nEnter a question: ")
@@ -61,7 +62,8 @@ while True:
 
         for q_idx, query in enumerate(q_queries):
             print(f"... handling query ({q_idx+1} of {len(q_queries)})")
-            chaining_result = chaining(q_type_defs + q_stmts + q_extra_exprs, query, handler=kb_handler)
+            # chaining_result = chaining(q_type_defs + q_stmts + q_extra_exprs, query, handler=kb_handler)
+            chaining_result = chaining(q_stmts + q_extra_exprs, query, handler=kb_handler)
 
             # TODO: check if the chaining result is what we want
 

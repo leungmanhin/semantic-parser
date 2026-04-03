@@ -88,7 +88,7 @@ def build_kb_handler(kb):
     return handler
 
 
-def _main_chaining(kb, query, result_queue, handler, max_depth):
+def _main_chaining(kb, query, result_queue, handler, max_steps):
     # print(f"Chaining (handler = {handler}):\n```\nkb = {kb}\nquery = {query}\n```")
 
     # post-process to work more efficiently
@@ -111,15 +111,11 @@ def _main_chaining(kb, query, result_queue, handler, max_depth):
     except Exception as e:
         print(f"\n!!! EXCEPTION: {e}\n")
 
-    depth = 0
     result = []
     start_time = time.time()
     print(f"... chaining for: {query}")
     try:
-        while ((not result) and (depth < max_depth)):
-            depth += 1
-            print(f"... chaining with depth = {depth}")
-            result = handler.query(query, depth=depth)
+        result = handler.query(query, steps=max_steps)
     except Exception as e:
         print(f"\n!!! EXCEPTION: {e}\n")
 
@@ -128,13 +124,13 @@ def _main_chaining(kb, query, result_queue, handler, max_depth):
     result_queue.put(result)
 
 
-def chaining(kb, query, handler=None, timeout=30, max_depth=10):
+def chaining(kb, query, handler=None, timeout=30, max_steps=100):
     result = None
     chaining_return_queue = multiprocessing.Queue()
 
     chaining_process = multiprocessing.Process(
         target = _main_chaining,
-        args = (kb, query, chaining_return_queue, handler, max_depth)
+        args = (kb, query, chaining_return_queue, handler, max_steps)
     )
 
     chaining_process.start()
