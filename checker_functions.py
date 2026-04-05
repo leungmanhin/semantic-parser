@@ -80,10 +80,12 @@ def metta_type_check(type_defs, stmt):
         return (False, e)
 
 def unused_preds_check(type_defs, stmts):
+    # Premises/Conclusions are structural wrappers used inside Implication, not user-defined predicates
+    implication_keywords = ["Premises", "Conclusions"]
     preds_used = list(set(sum([re.findall(r'\((.+?) ', re.sub(r'\n\s*', ' ', expr)) for expr in stmts], [])))
     preds_defined = list(set([re.search(r'\(: (.+?) \(-> ', re.sub(r'\n\s*', ' ', type_def)).group(1) for type_def in type_defs]))
-    filtered_preds_used = [item for item in preds_used if item not in (built_in_ops + special_symbols) and not item.startswith('$')]
-    filtered_preds_defined = [item for item in preds_defined if item not in (built_in_ops + special_symbols)]
+    filtered_preds_used = [item for item in preds_used if item not in (built_in_ops + special_symbols + implication_keywords) and not item.startswith('$')]
+    filtered_preds_defined = [item for item in preds_defined if item not in (built_in_ops + special_symbols + implication_keywords)]
     preds_defined_not_used = [item for item in filtered_preds_defined if item not in filtered_preds_used]
     if preds_defined_not_used:
         return (False, preds_defined_not_used)
@@ -91,10 +93,11 @@ def unused_preds_check(type_defs, stmts):
         return (True, [])
 
 def undefined_preds_check(type_defs, stmts):
+    implication_keywords = ["Premises", "Conclusions"]
     preds_used = list(set(sum([re.findall(r'\((.+?) ', re.sub(r'\n\s*', ' ', expr)) for expr in stmts], [])))
     preds_defined = list(set([re.search(r'\(: (.+?) \(-> ', re.sub(r'\n\s*', ' ', type_def)).group(1) for type_def in type_defs]))
-    filtered_preds_used = [item for item in preds_used if item not in (built_in_ops + special_symbols) and not item.startswith('$')]
-    filtered_preds_defined = [item for item in preds_defined if item not in (built_in_ops + special_symbols)]
+    filtered_preds_used = [item for item in preds_used if item not in (built_in_ops + special_symbols + implication_keywords) and not item.startswith('$')]
+    filtered_preds_defined = [item for item in preds_defined if item not in (built_in_ops + special_symbols + implication_keywords)]
     preds_used_not_defined = [item for item in filtered_preds_used if item not in filtered_preds_defined]
     if preds_used_not_defined:
         return (False, preds_used_not_defined)
