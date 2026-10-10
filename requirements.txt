@@ -1,4 +1,4 @@
-datasets==4.6.1
+datasets==5.0.1
 faiss-cpu==1.13.2
 hyperon==0.2.10
 networkx==3.6.1
